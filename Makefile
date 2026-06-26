@@ -6,7 +6,7 @@ $(TARGET): $(OBJ)
 	gcc $^ -o $@
 
 bin/%.o: src/%.c
-	gcc -c $^ -o $@
+	gcc -g -c $^ -o $@
 
 clean:
 	rm -f $(TARGET)
