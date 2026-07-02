@@ -26,11 +26,12 @@ int create_db_header(struct db_header_t **db_header) {
 }
 
 int validate_db_header(int fd) {
+  printf("validating header\n");
   if (fd < 0) {
     printf("Got a wrong filedescriptor\n");
     return -1;
   }
-  struct db_header_t *db_header = NULL;
+  struct db_header_t *db_header = malloc(sizeof(struct db_header_t));
   if (read(fd, db_header, sizeof(struct db_header_t)) !=
       sizeof(struct db_header_t)) {
     perror("Failed to read header");
@@ -56,6 +57,7 @@ int validate_db_header(int fd) {
     printf("Corrupted db (Wrong size)");
     return -1;
   }
+  printf("header valid\n");
   return 0;
 }
 
