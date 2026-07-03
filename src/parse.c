@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -25,35 +26,35 @@ int create_db_header(struct db_header_t **db_header) {
   return 0;
 }
 
-int validate_db_header(int fd) {
+int validate_db_header(int fd, struct db_header_t **db_header) {
   printf("validating header\n");
   if (fd < 0) {
     printf("Got a wrong filedescriptor\n");
     return -1;
   }
-  struct db_header_t *db_header = malloc(sizeof(struct db_header_t));
-  if (read(fd, db_header, sizeof(struct db_header_t)) !=
+  *db_header = malloc(sizeof(struct db_header_t));
+  if (read(fd, *db_header, sizeof(struct db_header_t)) !=
       sizeof(struct db_header_t)) {
     perror("Failed to read header");
     return -1;
   }
 
-  db_header->version = ntohl(db_header->version);
-  db_header->magic_number = ntohl(db_header->magic_number);
-  db_header->count = ntohl(db_header->count);
-  db_header->filesize = ntohl(db_header->filesize);
+  (*db_header)->version = ntohl((*db_header)->version);
+  (*db_header)->magic_number = ntohl((*db_header)->magic_number);
+  (*db_header)->count = ntohl((*db_header)->count);
+  (*db_header)->filesize = ntohl((*db_header)->filesize);
 
-  if (db_header->version != VERSION_NUMBER) {
+  if ((*db_header)->version != VERSION_NUMBER) {
     printf("Wrong db version\n");
     return -1;
   }
-  if (db_header->magic_number != MAGIC_NUMBER) {
+  if ((*db_header)->magic_number != MAGIC_NUMBER) {
     printf("Improper db magic");
     return -1;
   }
   struct stat dbstat = {0};
   fstat(fd, &dbstat);
-  if (db_header->filesize != dbstat.st_size) {
+  if ((*db_header)->filesize != dbstat.st_size) {
     printf("Corrupted db (Wrong size)");
     return -1;
   }
@@ -61,7 +62,8 @@ int validate_db_header(int fd) {
   return 0;
 }
 
-int write_to_file(int fd, struct db_header_t *db_header) {
+int write_to_file(int fd, struct db_header_t *db_header,
+                  struct employee_t *employees) {
   if (fd < 0) {
     printf("Got a wrong filedescriptor\n");
     return -1;
@@ -69,6 +71,7 @@ int write_to_file(int fd, struct db_header_t *db_header) {
   printf("writing to file 1\n");
   printf("%lu   %lu   %lu   %lu\n", db_header->version, db_header->magic_number,
          db_header->filesize, db_header->count);
+  int count = db_header->count;
   db_header->count = htonl(db_header->count);
   db_header->filesize = htonl(db_header->filesize);
   db_header->magic_number = htonl(db_header->magic_number);
@@ -81,5 +84,42 @@ int write_to_file(int fd, struct db_header_t *db_header) {
   lseek(fd, 0, SEEK_SET);
   write(fd, db_header, sizeof(struct db_header_t));
   printf("writing to file 3\n");
+  write(fd, employees, count * sizeof(struct employee_t));
+  return 0;
+}
+
+int read_employees(int fd, struct db_header_t *db_header,
+                   struct employee_t **employees) {
+  if (fd < 0) {
+    printf("Wrong filedescriptor\n");
+    return -1;
+  }
+  int count = db_header->count;
+  employees = calloc(count, sizeof(struct employee_t));
+  read(fd, *employees, count * sizeof(struct employee_t));
+  for (int i = 0; i < count; i++) {
+    employees[i]->hours = ntohl(employees[i]->hours);
+    printf("%s  %s    %u", (*employees)->name, (*employees)->address,
+           (*employees)->hours);
+  }
+  return 0;
+}
+
+int add_employee(struct db_header_t *db_header, struct employee_t **employees,
+                 char *addstring) {
+  if ((*employees = realloc(&employees, (++db_header->count) *
+                                            sizeof(struct employee_t))) ==
+      NULL) {
+    perror("Failed to allocate memmory");
+    return -1;
+  }
+  char *name = strtok(addstring, ",");
+  char *address = strtok(NULL, ",");
+  char *hours = strtok(NULL, ",");
+
+  strncpy(employees[db_header->count - 1]->name, name, strlen(name));
+  strncpy(employees[db_header->count - 1]->address, address, strlen(address));
+  employees[db_header->count - 1]->hours = atoi(hours);
+
   return 0;
 }

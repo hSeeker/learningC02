@@ -1,5 +1,6 @@
 #include "file.h"
 #include "parse.h"
+#include <bits/getopt_core.h>
 #include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]) {
   bool newfile = false;
   char *filename = NULL;
   bool read = false;
+  char *addstring = NULL;
 
   int c;
   while ((c = getopt(argc, argv, "nf:rd")) != -1) {
@@ -32,6 +34,9 @@ int main(int argc, char *argv[]) {
       break;
     case 'r':
       read = true;
+      break;
+    case 'a':
+      addstring = strdup(optarg);
       break;
     case 'd':
       DEBUG = true;
@@ -58,10 +63,20 @@ int main(int argc, char *argv[]) {
   int filedescriptor = 0;
   printf("test0\n");
   struct db_header_t *db_header = NULL;
+  struct employee_t *employees = NULL;
   printf("test1\n");
   if (read) {
     filedescriptor = open_db_file_to_read(filename);
-    validate_db_header(filedescriptor);
+    if (validate_db_header(filedescriptor, &db_header) != 0) {
+      printf("Failed to open valid header\n");
+      close(filedescriptor);
+      return -1;
+    }
+    if (read_employees(filedescriptor, db_header, &employees) < 0) {
+      printf("Failed to read data\n");
+      close(filedescriptor);
+      return -1;
+    }
   } else {
     if (newfile) {
       filedescriptor = create_db_file(filename);
@@ -79,9 +94,16 @@ int main(int argc, char *argv[]) {
       free(db_header);
       return -1;
     }
+    if (addstring)
+      if (add_employee(db_header, &employees, addstring) < 0) {
+        printf("Failed to add employee\n");
+        return -1;
+      }
     write_to_file(filedescriptor, db_header);
   }
   free(db_header);
+  free(filename);
+  free(addstring);
   close(filedescriptor);
   return 0;
 }
