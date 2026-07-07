@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   char *addstring = NULL;
 
   int c;
-  while ((c = getopt(argc, argv, "nf:rd")) != -1) {
+  while ((c = getopt(argc, argv, "nf:ra:d")) != -1) {
     switch (c) {
     case 'n':
       newfile = true;
@@ -61,10 +61,25 @@ int main(int argc, char *argv[]) {
   printf("%d\n", read);
   printf("%d\n", newfile);
   int filedescriptor = 0;
-  printf("test0\n");
   struct db_header_t *db_header = NULL;
   struct employee_t *employees = NULL;
-  printf("test1\n");
+  /*
+  if (read){
+      open_db_file_to_read(filename);
+      validate_db_header(filedescriptor, &db_header);
+      list
+    }else{
+      if (newfile) {
+        create_db_file(filename);
+        create_db_header(&db_header);
+      } else {
+        open_db_file_to_write(filename);
+        validate_db_header(filedescriptor, &db_header);
+        read_employees(filedescriptor, db_header, &employees);
+      }
+      write_to_file(filedescriptor, db_header, employees);
+    }
+  */
   if (read) {
     filedescriptor = open_db_file_to_read(filename);
     if (validate_db_header(filedescriptor, &db_header) != 0) {
@@ -72,9 +87,8 @@ int main(int argc, char *argv[]) {
       close(filedescriptor);
       return -1;
     }
-    if (read_employees(filedescriptor, db_header, &employees) < 0) {
-      printf("Failed to read data\n");
-      close(filedescriptor);
+    if (read_employees(filedescriptor, db_header, &employees)) {
+      printf("Error reading employees\n");
       return -1;
     }
   } else {
@@ -84,26 +98,37 @@ int main(int argc, char *argv[]) {
         perror("Cannot create database file");
         return -1;
       }
+      if (create_db_header(&db_header) < 0) {
+        printf("Failed to create db header\n");
+        free(db_header);
+        return -1;
+      }
     } else {
-      printf("test 2\n");
       filedescriptor = open_db_file_to_write(filename);
+      if (validate_db_header(filedescriptor, &db_header) < 0) {
+        printf("Failed to open valid header\n");
+        close(filedescriptor);
+        return -1;
+      }
+      if (read_employees(filedescriptor, db_header, &employees) < 0) {
+        printf("Error reading employees\n");
+        return -1;
+      }
     }
-    printf("test 3\n");
-    if (create_db_header(&db_header) < 0) {
-      printf("Failed to create db header\n");
-      free(db_header);
-      return -1;
-    }
-    if (addstring)
+    if (addstring) {
+      list_employees(db_header, employees);
       if (add_employee(db_header, &employees, addstring) < 0) {
         printf("Failed to add employee\n");
         return -1;
       }
-    write_to_file(filedescriptor, db_header);
+    }
+    list_employees(db_header, employees);
+    write_to_file(filedescriptor, db_header, employees);
   }
   free(db_header);
   free(filename);
-  free(addstring);
+  if (addstring)
+    free(addstring);
   close(filedescriptor);
   return 0;
 }

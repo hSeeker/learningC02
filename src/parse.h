@@ -24,5 +24,7 @@ int write_to_file(int fd, struct db_header_t *db_header,
                   struct employee_t *employees);
 int add_employee(struct db_header_t *db_header, struct employee_t **employees,
                  char *addstring);
+void list_employees(struct db_header_t *db_header,
+                    struct employee_t *employees);
 
 #endif // !PARSE_H
