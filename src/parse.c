@@ -72,7 +72,7 @@ int write_to_file(int fd, struct db_header_t *db_header,
     printf("Got a wrong filedescriptor\n");
     return -1;
   }
-  printf("writing to file 1\n");
+  printf("writing to file \n");
   printf("%lu   %lu   %lu   %lu\n", db_header->version, db_header->magic_number,
          db_header->filesize, db_header->count);
   int count = db_header->count;
@@ -85,20 +85,14 @@ int write_to_file(int fd, struct db_header_t *db_header,
   printf("%lu   %lu   %lu   %lu\n", db_header->version, db_header->magic_number,
          db_header->filesize, db_header->count);
 
-  printf("writing to file 2\n");
   lseek(fd, 0, SEEK_SET);
   write(fd, db_header, sizeof(struct db_header_t));
-  printf("writing to file 3, count = %d \n", count);
+  printf("writing to file, count = %d \n", count);
 
   for (int i = 0; i < count; i++) {
     employees[i].hours = htonl(employees[i].hours);
   }
   write(fd, employees, count * sizeof(struct employee_t));
-  //
-  printf("save count: %d\n", count);
-  for (int i = 0; i < count; i++)
-    printf("%d: %s; %s; %u\n", i, employees[i].name, employees[i].address,
-           employees[i].hours);
   return 0;
 }
 
@@ -118,9 +112,7 @@ int read_employees(int fd, struct db_header_t *db_header,
   int read_ammount = read(fd, *employees, count * sizeof(struct employee_t));
   printf("read ammount = %d\n", read_ammount);
   for (int i = 0; i < count; i++) {
-    employees[i]->hours = ntohl(employees[i]->hours);
-    printf("read employees[%d]: %s  %s    %u\n", i, (employees[i])->name,
-           (employees[i])->address, (employees[i])->hours);
+    (*employees)[i].hours = ntohl((*employees)[i].hours);
   }
   printf("read_employees finished\n");
   return 0;
@@ -134,11 +126,11 @@ int add_employee(struct db_header_t *db_header, struct employee_t **employees,
     *employees = calloc(1, sizeof(struct employee_t));
     if (*employees == NULL) {
       printf("Failed to allocate memmory\n");
+      return -1;
     }
     db_header->count++;
   } else {
     db_header->count++;
-    printf("realloc count = %u\n", db_header->count);
     if ((*employees = realloc(*employees, (db_header->count) *
                                               sizeof(struct employee_t))) ==
         NULL) {
@@ -146,25 +138,15 @@ int add_employee(struct db_header_t *db_header, struct employee_t **employees,
       return -1;
     }
   }
-  list_employees(db_header, *employees);
-  printf("%d\n", employees[0]->hours);
-  printf("alloc ok\n db_header->count == %u\n", db_header->count);
   char *name = strtok(addstring, ",");
   char *address = strtok(NULL, ",");
   char *hours = strtok(NULL, ",");
 
-  printf("%s  %s  %s\n", name, address, hours);
-  strncpy(employees[db_header->count - 1]->name, name, strlen(name));
-  strncpy(employees[db_header->count - 1]->address, address, strlen(address));
-  employees[db_header->count - 1]->hours = atoi(hours);
-  printf("adding: %s; %s; %u\n", employees[db_header->count - 1]->name,
-         employees[db_header->count - 1]->address,
-         employees[db_header->count - 1]->hours);
-  /*
-    free(name);
-    free(address);
-    free(hours);
-  */
+  strncpy((*employees)[db_header->count - 1].name, name,
+          sizeof((*employees)[db_header->count - 1].name));
+  strncpy((*employees)[db_header->count - 1].address, address,
+          sizeof((*employees)[db_header->count - 1].address));
+  (*employees)[db_header->count - 1].hours = atoi(hours);
   printf("employee added\n");
   return 0;
 }
@@ -172,7 +154,7 @@ int add_employee(struct db_header_t *db_header, struct employee_t **employees,
 void list_employees(struct db_header_t *db_header,
                     struct employee_t *employees) {
   printf("List employees:\n");
-  printf("count: %u\n", db_header->count);
+  printf("count: %lu\n", db_header->count);
   for (int i = 0; i < db_header->count; i++)
     printf("%d: %s; %s; %u\n", i, employees[i].name, employees[i].address,
            employees[i].hours);

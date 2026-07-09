@@ -63,23 +63,7 @@ int main(int argc, char *argv[]) {
   int filedescriptor = 0;
   struct db_header_t *db_header = NULL;
   struct employee_t *employees = NULL;
-  /*
-  if (read){
-      open_db_file_to_read(filename);
-      validate_db_header(filedescriptor, &db_header);
-      list
-    }else{
-      if (newfile) {
-        create_db_file(filename);
-        create_db_header(&db_header);
-      } else {
-        open_db_file_to_write(filename);
-        validate_db_header(filedescriptor, &db_header);
-        read_employees(filedescriptor, db_header, &employees);
-      }
-      write_to_file(filedescriptor, db_header, employees);
-    }
-  */
+
   if (read) {
     filedescriptor = open_db_file_to_read(filename);
     if (validate_db_header(filedescriptor, &db_header) != 0) {
@@ -91,6 +75,7 @@ int main(int argc, char *argv[]) {
       printf("Error reading employees\n");
       return -1;
     }
+    list_employees(db_header, employees);
   } else {
     if (newfile) {
       filedescriptor = create_db_file(filename);
@@ -112,21 +97,24 @@ int main(int argc, char *argv[]) {
       }
       if (read_employees(filedescriptor, db_header, &employees) < 0) {
         printf("Error reading employees\n");
+        free(db_header);
+        free(employees);
         return -1;
       }
     }
     if (addstring) {
-      list_employees(db_header, employees);
       if (add_employee(db_header, &employees, addstring) < 0) {
         printf("Failed to add employee\n");
+        free(db_header);
+        free(employees);
         return -1;
       }
     }
-    list_employees(db_header, employees);
     write_to_file(filedescriptor, db_header, employees);
   }
   free(db_header);
   free(filename);
+  free(employees);
   if (addstring)
     free(addstring);
   close(filedescriptor);
