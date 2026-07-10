@@ -73,8 +73,6 @@ int write_to_file(int fd, struct db_header_t *db_header,
     return -1;
   }
   printf("writing to file \n");
-  printf("%lu   %lu   %lu   %lu\n", db_header->version, db_header->magic_number,
-         db_header->filesize, db_header->count);
   int count = db_header->count;
   db_header->count = htonl(db_header->count);
   db_header->filesize =

@@ -58,8 +58,6 @@ int main(int argc, char *argv[]) {
     printf("Filename argument required!\n");
     return -1;
   }
-  printf("%d\n", read);
-  printf("%d\n", newfile);
   int filedescriptor = 0;
   struct db_header_t *db_header = NULL;
   struct employee_t *employees = NULL;
